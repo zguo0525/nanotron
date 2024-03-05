@@ -1,6 +1,6 @@
 checkpoints:
   checkpoint_interval: 10
-  checkpoints_path: /fsx/ferdinandmom/ferdinand-hf/brrr/nanotron/examples/checkpoints
+  checkpoints_path: /dccstor/mit_fm/zguo0525/codemamba/src/nanotron/examples/checkpoints
   checkpoints_path_is_shared_file_system: false
   resume_checkpoint_path: null
   save_initial_state: false
@@ -79,11 +79,11 @@ optimizer:
   weight_decay: 0.01
   zero_stage: 0
 parallelism:
-  dp: 2
+  dp: 16
   expert_parallel_size: 1
-  pp: 2
+  pp: 1
   pp_engine: 1f1b
-  tp: 2
+  tp: 1
   tp_linear_async_communication: false
   tp_mode: ALL_REDUCE
 profiler: null

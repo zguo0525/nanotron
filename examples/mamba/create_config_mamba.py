@@ -36,9 +36,9 @@ ssm_cfg = {
 }
 # https://huggingface.co/state-spaces/mamba-790m/blob/main/config.json
 model_config = MambaModelConfig(
-    d_model=1536,
+    d_model=2048,
     num_hidden_layers=48,
-    vocab_size=50277,
+    vocab_size=49152,
     ssm_cfg=ssm_cfg,
     rms_norm=True,
     fused_add_norm=True,
@@ -103,9 +103,9 @@ optimizer = OptimizerArgs(
 )
 
 parallelism = ParallelismArgs(
-    dp=2,
-    pp=2,
-    tp=2,
+    dp=16,
+    pp=1,
+    tp=1,
     pp_engine="1f1b",
     tp_mode="ALL_REDUCE",
     tp_linear_async_communication=False,
@@ -114,10 +114,10 @@ parallelism = ParallelismArgs(
 tokens = TokensArgs(sequence_length=2048, train_steps=100, micro_batch_size=2, batch_accumulation_per_replica=1)
 
 dataset = PretrainDatasetsArgs(
-    hf_dataset_or_datasets={"roneneldan/TinyStories": 1.0},
+    hf_dataset_or_datasets={"Locutusque/UltraTextbooks": 1.0},
     hf_dataset_config_name=None,
     hf_dataset_splits="train",
-    dataset_processing_num_proc_per_process=24,
+    dataset_processing_num_proc_per_process=32,
     dataset_overwrite_cache=False,
     text_column_name="text",
 )
@@ -127,13 +127,13 @@ os.makedirs(checkpoints_path, exist_ok=True)
 
 config = MambaConfig(
     general=GeneralArgs(project="test", run="mamba", seed=seed, ignore_sanity_checks=True),
-    checkpoints=CheckpointsArgs(checkpoints_path=checkpoints_path, checkpoint_interval=10),
+    checkpoints=CheckpointsArgs(checkpoints_path=checkpoints_path, checkpoint_interval=1000),
     parallelism=parallelism,
     model=ModelArgs(
         init_method=MambaInit(initializer_range=0.02, rescale_prenorm_residual=True, n_residuals_per_layer=1),
         model_config=model_config,
     ),
-    tokenizer=TokenizerArgs("gpt2"),
+    tokenizer=TokenizerArgs("bigcode/starcoder2-3b"),
     optimizer=optimizer,
     logging=LoggingArgs(),
     tokens=tokens,
