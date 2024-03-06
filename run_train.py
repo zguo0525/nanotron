@@ -72,7 +72,8 @@ def get_dataloader(trainer: DistributedTrainer):
             # TODO @nouamanetazi: this may timeout before 1st device finishes processing dataset. Can we have a ctxmanager to modify timeout?
             # TODO: generalise to include  for validation/test splits
 
-            tokenized_path = f"{trainer.config.data.dataset.hf_dataset_or_datasets}_tokenized"
+            first_key, first_value = next(iter(trainer.config.data.dataset.hf_dataset_or_datasets.items()))
+            tokenized_path = f"{first_key}_tokenized"
             # Check if the path does not exist and save the dataset
             if not os.path.exists(tokenized_path):
                 print("load the raw dataset")
@@ -98,7 +99,7 @@ def get_dataloader(trainer: DistributedTrainer):
                 )
 
                 os.makedirs(tokenized_path)  # Ensure the directory exists
-                train_dataset.save_to_disk(tokenized_path, max_shard_size="100GB", num_proc=32)
+                train_dataset.save_to_disk(tokenized_path, max_shard_size="100GB", num_proc=16)
                 print(f"Dataset saved to {tokenized_path}")
             else:
                 print(f"Dataset at {tokenized_path} already exists. Loading.")

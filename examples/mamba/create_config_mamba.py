@@ -19,6 +19,20 @@ from nanotron.config import (
 )
 from nanotron.logging import human_format
 
+# Import the argparse library
+import argparse
+# Create the parser
+parser = argparse.ArgumentParser(description='Create Mamba Configuration')
+# Add an argument for the number of GPUs
+parser.add_argument('--num_gpu', type=int, required=True, help='Number of GPUs to use')
+# Add an argument for the number of nodes
+parser.add_argument('--nnodes', type=int, required=True, help='World size (number of nodes)')
+# Parse the arguments
+args = parser.parse_args()
+# You can now use args.num_gpu and args.nnodes in your script
+print(f"Number of GPUs: {args.num_gpu}")
+print(f"Number of Nodes: {args.nnodes}")
+
 ssm_cfg_dtype = "bfloat16"
 ssm_cfg = {
     "d_state": 16,
@@ -103,7 +117,7 @@ optimizer = OptimizerArgs(
 )
 
 parallelism = ParallelismArgs(
-    dp=1,
+    dp=args.num_gpu * args.nnodes,
     pp=1,
     tp=1,
     pp_engine="1f1b",
@@ -111,10 +125,12 @@ parallelism = ParallelismArgs(
     tp_linear_async_communication=False,
 )
 
-tokens = TokensArgs(sequence_length=4096, train_steps=10000, micro_batch_size=2, batch_accumulation_per_replica=8)
+batch_accumulation = 1024 // (args.num_gpu * args.nnodes * 2)
+tokens = TokensArgs(sequence_length=4096, train_steps=24000, micro_batch_size=2, batch_accumulation_per_replica=batch_accumulation)
 
 dataset = PretrainDatasetsArgs(
     hf_dataset_or_datasets={"/dataset/bluepile/mamba_datasets/starcoder_v1": 1.0},
+    #hf_dataset_or_datasets={"Locutusque/UltraTextbooks": 1.0},
     hf_dataset_config_name=None,
     hf_dataset_splits="train",
     dataset_processing_num_proc_per_process=64,

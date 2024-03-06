@@ -20,7 +20,9 @@ echo MASTER_PORT $MASTER_PORT
 
 EXAMPLE_PATH=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
 REPO_PATH=$(dirname $EXAMPLE_PATH)
-python $EXAMPLE_PATH/create_config_mamba.py
+python $EXAMPLE_PATH/create_config_mamba.py \
+    --num_gpu $NUM_GPU \
+    --nnodes $WORLD_SIZE
 
 # Setup from environment variables
 
