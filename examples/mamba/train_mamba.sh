@@ -1,13 +1,13 @@
 #!/bin/bash
 export PYTHONFAULTHANDLER=1
-export OMP_NUM_THREADS=32
+export OMP_NUM_THREADS=64
 source /dccstor/mit_fm/zguo0525/codemamba/src/nanotron/examples/ccc/ccc_nccl.sh
 
 # Simple script to create a tiny mamba model and train it
 
 set -e -x
 
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:2048
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024
 # export TORCH_DISTRIBUTED_DEBUG=DETAIL
 # export RANK=$((LSF_PM_XTASKID - 1))
 export MASTER_ADDR=$(echo ${LSB_MCPU_HOSTS} | tr ' ' '\n' | head -n 1)
@@ -28,13 +28,13 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export FI_PROVIDER="efa"
 
 # Start the GPU monitor in the background
-(while :; do nvidia-smi; sleep 100; done) &
+(while :; do nvidia-smi; sleep 300; done) &
 
 # Train the model
 nvidia-smi
 MKL_SERVICE_FORCE_INTEL=1
 torchrun \
-    --nproc_per_node 8 \
+    --nproc_per_node $NUM_GPU \
     --nnodes=$WORLD_SIZE:$WORLD_SIZE \
     --rdzv_backend c10d \
     --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \

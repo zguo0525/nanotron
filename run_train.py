@@ -7,8 +7,8 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1 # important for some distributed operations
 torchrun --nproc_per_node=8 run_train.py --config-file examples/config_tiny_llama.yaml
 ```
 """
-import argparse
-
+import argparse, os
+from datasets import load_from_disk
 from nanotron import logging
 from nanotron.config import (
     PretrainDatasetsArgs,
@@ -72,25 +72,39 @@ def get_dataloader(trainer: DistributedTrainer):
             # TODO @nouamanetazi: this may timeout before 1st device finishes processing dataset. Can we have a ctxmanager to modify timeout?
             # TODO: generalise to include  for validation/test splits
 
-            # We load the raw dataset
-            raw_dataset = get_datasets(
-                hf_dataset_or_datasets=trainer.config.data.dataset.hf_dataset_or_datasets,
-                splits=trainer.config.data.dataset.hf_dataset_splits,
-            )["train"]
+            tokenized_path = f"{trainer.config.data.dataset.hf_dataset_or_datasets}_tokenized"
+            # Check if the path does not exist and save the dataset
+            if not os.path.exists(tokenized_path):
+                print("load the raw dataset")
+                # We load the raw dataset
+                raw_dataset = get_datasets(
+                    hf_dataset_or_datasets=trainer.config.data.dataset.hf_dataset_or_datasets,
+                    splits=trainer.config.data.dataset.hf_dataset_splits,
+                )["train"]
 
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.padding_side = "left"
+                tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+                tokenizer.pad_token = tokenizer.eos_token
+                tokenizer.padding_side = "left"
 
-            # We apply the Causal Language Modeling preprocessing
-            train_dataset = clm_process(
-                raw_dataset=raw_dataset,
-                tokenizer=tokenizer,
-                text_column_name=trainer.config.data.dataset.text_column_name,
-                dataset_processing_num_proc_per_process=trainer.config.data.dataset.dataset_processing_num_proc_per_process,
-                dataset_overwrite_cache=trainer.config.data.dataset.dataset_overwrite_cache,
-                sequence_length=trainer.sequence_length,
-            )
+                print("apply the causal language modeling preprocessing")
+                # We apply the Causal Language Modeling preprocessing
+                train_dataset = clm_process(
+                    raw_dataset=raw_dataset,
+                    tokenizer=tokenizer,
+                    text_column_name=trainer.config.data.dataset.text_column_name,
+                    dataset_processing_num_proc_per_process=trainer.config.data.dataset.dataset_processing_num_proc_per_process,
+                    dataset_overwrite_cache=trainer.config.data.dataset.dataset_overwrite_cache,
+                    sequence_length=trainer.sequence_length,
+                )
+
+                os.makedirs(tokenized_path)  # Ensure the directory exists
+                train_dataset.save_to_disk(tokenized_path, max_shard_size="100GB", num_proc=32)
+                print(f"Dataset saved to {tokenized_path}")
+            else:
+                print(f"Dataset at {tokenized_path} already exists. Loading.")
+                # Load the dataset from the saved path
+                train_dataset = load_from_disk(tokenized_path)
+                print(f"Dataset loaded from {tokenized_path}")
 
             # We load the processed dataset on the ranks requiring it
             dataloader = get_train_dataloader(
@@ -133,8 +147,11 @@ if __name__ == "__main__":
     config_file = args.config_file
 
     # Load trainer and data
+    print("loading trainer")
     trainer = DistributedTrainer(config_file)
+    print("loading dataloader")
     dataloader = get_dataloader(trainer)
 
     # Train
+    print("start training")
     trainer.train(dataloader)

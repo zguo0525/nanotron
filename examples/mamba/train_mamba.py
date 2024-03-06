@@ -26,7 +26,9 @@ if __name__ == "__main__":
     config_file = args.config_file
 
     # Load trainer and data
+    print("load trainer")
     trainer = MambaTrainer(config_file, model_config_class=MambaModelConfig, model_class=MambaForTraining)
+    print("load data")
     dataloader = get_dataloader(trainer)
 
     # Train

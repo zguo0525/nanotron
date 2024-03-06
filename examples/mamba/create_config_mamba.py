@@ -98,12 +98,12 @@ optimizer = OptimizerArgs(
     adam_beta2=0.95,
     torch_adam_is_fused=True,
     learning_rate_scheduler=LRSchedulerArgs(
-        learning_rate=3e-4, lr_warmup_steps=10, lr_warmup_style="linear", lr_decay_style="cosine", min_decay_lr=1e-5
+        learning_rate=5.3e-4, lr_warmup_steps=2000, lr_warmup_style="linear", lr_decay_style="cosine", min_decay_lr=5.3e-5
     ),
 )
 
 parallelism = ParallelismArgs(
-    dp=16,
+    dp=1,
     pp=1,
     tp=1,
     pp_engine="1f1b",
@@ -111,15 +111,15 @@ parallelism = ParallelismArgs(
     tp_linear_async_communication=False,
 )
 
-tokens = TokensArgs(sequence_length=2048, train_steps=100, micro_batch_size=2, batch_accumulation_per_replica=1)
+tokens = TokensArgs(sequence_length=4096, train_steps=10000, micro_batch_size=2, batch_accumulation_per_replica=8)
 
 dataset = PretrainDatasetsArgs(
-    hf_dataset_or_datasets={"Locutusque/UltraTextbooks": 1.0},
+    hf_dataset_or_datasets={"/dataset/bluepile/mamba_datasets/starcoder_v1": 1.0},
     hf_dataset_config_name=None,
     hf_dataset_splits="train",
-    dataset_processing_num_proc_per_process=32,
+    dataset_processing_num_proc_per_process=64,
     dataset_overwrite_cache=False,
-    text_column_name="text",
+    text_column_name="content",
 )
 
 checkpoints_path = os.path.dirname(os.path.dirname(__file__)) + "/checkpoints"
